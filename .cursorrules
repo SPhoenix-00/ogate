@@ -1,0 +1,38 @@
+# ogate — Project Rules
+
+## 1. Stack
+
+- **Frontend**: Phaser (JavaScript/TypeScript) for game UI and rendering.
+- **Backend**: Colyseus (Node.js) for game server, rooms, and real-time logic.
+- **Data**: MongoDB for persistence; Redis for caching/session/real-time data as needed.
+
+All new code must align with this stack. Do not introduce other game engines or server frameworks for core gameplay.
+
+---
+
+## 2. Architectural Boundaries — Authoritative Server
+
+This project uses an **authoritative server** model.
+
+| Responsibility | Client (Phaser) | Server (Colyseus) |
+|----------------|-----------------|-------------------|
+| **State** | Renders state only; never derives or predicts authoritative game state. | Owns and computes all game state. |
+| **Input** | Sends user input (keys, clicks, commands). | Receives input, validates, applies logic, broadcasts state. |
+| **Logic** | No game rules, collision, scoring, or win/loss logic. | All game rules, physics, validation, and outcomes. |
+
+- **Client**: Display and input only. Phaser scenes reflect state received from the server and send input messages. No client-side game logic that affects shared state.
+- **Server**: Single source of truth. Colyseus rooms hold state, process all inputs, run all calculations, and push state updates to clients.
+
+When adding features, implement logic on the server first; then add client rendering and input handling.
+
+---
+
+## 3. Style Guidelines
+
+- **TypeScript**: Use TypeScript for both frontend (Phaser) and backend (Colyseus). Avoid `any`; use explicit types and interfaces. Enable strict mode where possible.
+- **Modular structure**: 
+  - Split by feature or domain (e.g. `rooms/`, `schemas/`, `scenes/`, `systems/`).
+  - One main responsibility per file; small, focused modules over large monoliths.
+  - Shared types and constants in dedicated modules (e.g. `types/`, `constants/`).
+
+Apply these rules when creating or modifying code in this project.
