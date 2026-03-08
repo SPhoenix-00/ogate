@@ -1,6 +1,6 @@
 # Social & Diplomacy
 
-This document summarizes the social structures of OGate from the HLDD: **Faction Alignment** (the main social glue in the early game) and the **Stellar Concordat** (daily PvE and home security). There are **no player Corporations in the early game**; Corporations and player-owned outposts belong to Phase 2 / Void Capacitor content (HLDD §3.2, §4.1). The same systems are summarized in **Home System** (docs/02_home_system.md); they support the **Coffee Break** and **Progression** steps of the Macro Loop (docs/01_core_loops.md).
+This document summarizes the social structures of OGate from the HLDD: **Faction Alignment** (the main social glue in the early game) and the **SDI (Stellar Defense Initiative)** (daily PvE and home security). There are **no player Corporations in the early game**; Corporations and player-owned outposts belong to Phase 2 / Void Capacitor content (HLDD §3.2, §4.1). The same systems are summarized in **Home System** (docs/02_home_system.md); they support the **Coffee Break** and **Progression** steps of the Macro Loop (docs/01_core_loops.md).
 
 ---
 
@@ -29,9 +29,9 @@ The galaxy is populated by **major AI factions**. Players **pledge loyalty** to 
 
 ---
 
-## 2. The Stellar Concordat (Home Security)
+## 2. The SDI (Stellar Defense Initiative) (Home Security)
 
-The **Stellar Concordat** is an **interstellar alliance dedicated to the safety of developed systems** (akin to Concord) (HLDD §3.2).
+The **SDI (Stellar Defense Initiative)** is an **interstellar alliance dedicated to the safety of developed systems** (akin to Concord) (HLDD §3.2).
 
 ### Security Contracts (Daily PvE)
 

@@ -80,7 +80,7 @@ Players balance three generation methods, each with constraints (HLDD §3.1).
 - **Collaborative Research:** Faction members contribute to a global "Faction Research Pool." When milestones are hit, all members gain temporary buffs (e.g. "+10% Mining Yield for 24h") or unlock exclusive Faction Blueprints (HLDD §3.2).
 - **Faction War Events:** Weekly global events where two Factions go to war. Players contribute by completing specific PvE objectives (e.g. "Donate 10,000 Iron," "Destroy 50 Pirate Ships"). Progress is aggregate and global; rewards are distributed weekly based on Faction success (HLDD §3.2).
 
-### The Stellar Concordat (Home Security)
+### The SDI (Stellar Defense Initiative) (Home Security)
 
 An interstellar alliance dedicated to the safety of developed systems (akin to Concord) (HLDD §3.2).
 

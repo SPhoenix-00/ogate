@@ -67,7 +67,7 @@ export function contributeFactionResources(
 }
 
 /**
- * Generate fresh daily contracts from the Stellar Concordat.
+ * Generate fresh daily contracts from the SDI (Stellar Defense Initiative).
  */
 export function generateDailyContracts(social: SocialStateSchema): void {
   social.activeContracts.splice(0, social.activeContracts.length);

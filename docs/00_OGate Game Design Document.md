@@ -85,7 +85,7 @@
   * **Faction Alignment:** Players pledge loyalty to a specific Faction. This grants access to a shared **Faction Chat**, allowing coordination and social play without the administrative overhead of a Corp.  
   * **Collaborative Research:** Faction members contribute resources to a global "Faction Research Pool." When milestones are hit, all members gain temporary buffs (e.g., "+10% Mining Yield for 24h") or unlock exclusive Faction Blueprints.  
   * **Faction War Events:** Weekly global events where two Factions go to war. Players contribute by completing specific PvE objectives (e.g., "Donate 10,000 Iron," "Destroy 50 Pirate Ships"). Progress is aggregate and global. Rewards are distributed weekly based on the Faction's success.  
-* **The Stellar Concordat (Home Security):** An interstellar alliance dedicated to the safety of developed systems (akin to Concord).  
+* **The SDI (Stellar Defense Initiative) (Home Security):** An interstellar alliance dedicated to the safety of developed systems (akin to Concord).  
   * *Security Contracts:* Daily PvE quests issued to the player (e.g., "Eliminate Pirate Scouts," "Rescue Diplomatic Shuttle," "Scan Anomalies").  
   * *Rewards:* Completing contracts grants **Concordat Commendations**, used to purchase defensive orbital platforms, safe-logistics ships, or hire temporary AI wingmen.
 
@@ -322,6 +322,16 @@ Instead of static text, OGate uses LLMs to generate "Derelict Logs."
   * *Step 2:* Craft a "Decryption Capacitor" (Requires resources).  
   * *Step 3:* Use Capacitor to open a specific story instance to find the "Lost Flagship."
 
+### **6.2 Explorer Storylines (Paid Narrative — Key Monetization)**
+
+A simplified, Land-of-Livia–style layer: the player dispatches a single **Explorer** through the OGate to follow a **paid storyline**. Progress is asynchronous (time-based and/or light check-ins); the Explorer is not in the same instances as the player's fleet.
+
+* **One at a time:** Only one storyline can be active per account. Completing or abandoning it frees the slot.
+* **Purchase:** Each storyline is a **one-time IAP** (~$2–3). No loot boxes; no pay-to-win.
+* **Rewards:** Unlocks **storyline-exclusive cosmetics** (skins, decals, home backgrounds), **upgrades** (e.g. blueprints, small permanent bonuses), and narrative beats.
+* **Return:** On completion, the Explorer **returns through the OGate in a unique ship** — a hull (or unique skin) **only** obtainable from that storyline, added to the player's fleet.
+* **Fiction:** The Explorer "enters" the OGate and follows a scripted arc; no PvP, no shared entropy. Full spec: *docs/11_explorer_storylines.md*.
+
 ## **7\. Progression System**
 
 ### **7.1 Time-Based Skill Training (Retention Hook)**
@@ -400,6 +410,10 @@ Research is divided into four distinct disciplines, each with its own progressio
    * Reduce research or construction time in Home System.  
 6. **Cybernetic Modules:**  
    * Players can buy basic Cybernetic Modules (stat boosters). However, **attaching** them requires **Nanites**, which cannot be bought.
+7. **Explorer Storylines (Key Monetization):**  
+   * **Product:** One-time IAP per storyline (~$2–3). Player dispatches a single Explorer through the OGate on a scripted narrative; only one storyline active at a time.  
+   * **Rewards:** Exclusive cosmetics, upgrades, and — on completion — the Explorer returns in a **unique ship** (hull/skin only from that storyline).  
+   * **Design:** Asynchronous progress (time + optional check-ins); no PvP, no instance overlap. See *docs/11_explorer_storylines.md*.
 
 ## **10\. Art & Audio Direction**
 

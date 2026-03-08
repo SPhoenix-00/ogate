@@ -10,6 +10,7 @@ import {
   type UpgradeBuildingPayload,
   type QueueSkillPayload,
   type BuildShipPayload,
+  type RepairShipPayload,
   type PledgeFactionPayload,
   type ContributeFactionResourcesPayload,
   type ProgressContractPayload,
@@ -23,11 +24,16 @@ import { HomeStateSchema } from "../schemas/HomeStateSchema.js";
 import {
   initializeHomeState,
   collectResources,
+  getEffectiveProductionRates,
   upgradeBuilding,
   tickBuildingUpgrades,
   queueSkill,
   tickSkillQueue,
+  cancelLastSkillQueueItem,
   buildShip,
+  tickShipBuild,
+  cancelShipBuild,
+  repairShip,
 } from "../systems/economySystem.js";
 import {
   initializeSocialState,
@@ -63,7 +69,8 @@ export class HomeRoom extends Room<HomeStateSchema> {
 
   onJoin(client: Client): void {
     collectResources(this.state);
-    client.send(HomeResponse.ProfileSync, { connected: true });
+    const rates = getEffectiveProductionRates(this.state);
+    client.send(HomeResponse.ProfileSync, { connected: true, productionRates: rates });
     console.log(`[HomeRoom] ${this.state.playerName} connected`);
   }
 
@@ -77,7 +84,8 @@ export class HomeRoom extends Room<HomeStateSchema> {
   }
 
   private registerMessages(): void {
-    // Economy messages
+    // ── Economy ────────────────────────────────────────
+
     this.onMessage(HomeAction.CollectResources, (client) => {
       const gains = collectResources(this.state);
       client.send(HomeResponse.ResourcesCollected, gains);
@@ -101,16 +109,51 @@ export class HomeRoom extends Room<HomeStateSchema> {
       }
     });
 
-    this.onMessage(HomeAction.BuildShip, (client, payload: BuildShipPayload) => {
-      const error = buildShip(this.state, payload.shipClass);
+    this.onMessage(HomeAction.CancelSkillQueue, (client) => {
+      const error = cancelLastSkillQueueItem(this.state);
       if (error) {
         client.send(HomeResponse.HomeError, { message: error });
       } else {
-        client.send(HomeResponse.ShipBuilt, { shipClass: payload.shipClass });
+        client.send(HomeResponse.SkillQueueCancelled, {});
       }
     });
 
-    // Social messages
+    this.onMessage(HomeAction.BuildShip, (client, payload: BuildShipPayload) => {
+      const result = buildShip(this.state, payload.shipClass);
+      if (result.error) {
+        client.send(HomeResponse.HomeError, { message: result.error });
+      } else {
+        client.send(HomeResponse.ShipBuildStarted, {
+          shipClass: payload.shipClass,
+          buildTimeMs: result.started!.buildTimeMs,
+          completeAt: result.started!.completeAt,
+        });
+      }
+    });
+
+    this.onMessage(HomeAction.CancelShipBuild, (client) => {
+      const error = cancelShipBuild(this.state);
+      if (error) {
+        client.send(HomeResponse.HomeError, { message: error });
+      } else {
+        client.send(HomeResponse.ShipBuildCancelled, {});
+      }
+    });
+
+    this.onMessage(HomeAction.RepairShip, (client, payload: RepairShipPayload) => {
+      const result = repairShip(this.state, payload.shipId);
+      if (result.error) {
+        client.send(HomeResponse.HomeError, { message: result.error });
+      } else {
+        client.send(HomeResponse.ShipRepaired, {
+          shipId: payload.shipId,
+          cost: result.cost,
+        });
+      }
+    });
+
+    // ── Social ─────────────────────────────────────────
+
     this.onMessage(SocialAction.PledgeFaction, (client, payload: PledgeFactionPayload) => {
       const error = pledgeFaction(this.state.social, payload.factionId as FactionId);
       if (error) {
@@ -158,7 +201,8 @@ export class HomeRoom extends Room<HomeStateSchema> {
       client.send(SocialResponse.ContractsRefreshed, {});
     });
 
-    // Shop messages
+    // ── Shop ───────────────────────────────────────────
+
     this.onMessage(ShopAction.PurchaseItem, (client, payload: PurchaseItemPayload) => {
       const result = purchaseShopItem(this.state, this.state.crystals, payload.itemId as ShopItemId);
       if (result.error) {
@@ -184,6 +228,11 @@ export class HomeRoom extends Room<HomeStateSchema> {
       const completedSkills = tickSkillQueue(this.state);
       for (const sk of completedSkills) {
         this.broadcast(HomeResponse.SkillCompleted, { skillId: sk });
+      }
+
+      const completedShip = tickShipBuild(this.state);
+      if (completedShip) {
+        this.broadcast(HomeResponse.ShipBuildComplete, { shipClass: completedShip });
       }
 
       const completedResearch = tickResearch(this.state.social);

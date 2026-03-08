@@ -36,6 +36,7 @@ export class HomeStateSchema extends Schema {
   @type("float64") biomass: number = 300;
   @type("float64") energy: number = 200;
   @type("float64") nanites: number = 0;
+  @type("float64") nebulite: number = 0;
   @type("float64") artifacts: number = 0;
   @type("int32") capacitors1MW: number = 3;
   @type("int32") capacitors1GW: number = 0;
@@ -47,6 +48,11 @@ export class HomeStateSchema extends Schema {
   @type([HomeShipSchema]) fleet = new ArraySchema<HomeShipSchema>();
 
   @type("float64") lastCollectedAt: number = Date.now();
+
+  /** Ship class currently under construction (empty = shipyard idle). */
+  @type("string") shipBuildClass: string = "";
+  /** Unix-ms timestamp when the current ship build completes. */
+  @type("float64") shipBuildCompleteAt: number = 0;
 
   @type(SocialStateSchema) social: SocialStateSchema = new SocialStateSchema();
 }

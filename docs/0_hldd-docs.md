@@ -109,7 +109,7 @@ This index outlines the breakdown of the High-Level Game Design Document into fo
 **Content:** Factions and Concordat interactions.
 
 - **Faction Alignment:** Reputation, Shared Research, War Events
-- **Stellar Concordat:** Security Contracts and PvE loop
+- **SDI (Stellar Defense Initiative):** Security Contracts and PvE loop
 
 ---
 
@@ -120,7 +120,18 @@ This index outlines the breakdown of the High-Level Game Design Document into fo
 **Content:** Currencies and F2P Strategy.
 
 - **Currencies:** Credits, Nanites (Unbuyable), Artifacts (Prestige)
-- **Monetization:** Capacitor Packs, Emergency Transponders, Speed-ups, Cosmetics
+- **Monetization:** Capacitor Packs, Emergency Transponders, Speed-ups, Cosmetics, **Explorer Storylines**
+
+---
+
+## 11. Explorer Storylines
+
+**File:** `docs/11_explorer_storylines.md`
+
+**Content:** Paid narrative layer (Land-of-Livia–style). One Explorer dispatched through the OGate per storyline; one active at a time; ~$2–3 per storyline. Rewards: exclusive cosmetics, upgrades, and a **unique ship** on completion.
+
+- **Flow:** Purchase storyline → dispatch Explorer → asynchronous progress → rewards per beat → Explorer returns in unique ship
+- **Integration:** HLDD §6.2 (Narrative), §9 (Monetization); docs/09_economy_monetization.md
 
 ---
 

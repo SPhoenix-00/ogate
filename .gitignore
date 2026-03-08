@@ -4,3 +4,6 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Stable Diffusion Web UI (external tool, not part of ogate)
+stable-diffusion-webui/

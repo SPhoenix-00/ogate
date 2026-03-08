@@ -1,12 +1,6 @@
+import { CombatStance } from "@ogate/shared";
 import type { PlayerSchema } from "../schemas/PlayerSchema.js";
 import type { ShipSchema } from "../schemas/ShipSchema.js";
-
-/** Combat stances set by the player before engagement. */
-export enum CombatStance {
-  FocusFire = "FOCUS_FIRE",
-  ProtectHaulers = "PROTECT_HAULERS",
-  Balanced = "BALANCED",
-}
 
 export interface CombatOutcome {
   winnerId: string;

@@ -38,6 +38,13 @@ The model focuses on **access**, **convenience**, **insurance**, and **cosmetics
 - Players can **buy basic Cybernetic Modules** (stat boosters) with premium currency (HLDD §9).
 - **Attaching** them to the character requires **Nanites**, which **cannot be bought** (HLDD §9). So high-end character power still requires playing (or trading) for Nanites (docs/07_progression.md).
 
+### 7. Explorer Storylines (Key Monetization)
+
+- **Product:** **One-time IAP per storyline** (~$2–3). The player dispatches a single **Explorer** through the OGate to follow a **scripted narrative** (Land-of-Livia–style); progress is asynchronous (time + optional check-ins) (HLDD §6.2, §9).
+- **Limit:** **Only one storyline can be active at a time.** Completing or abandoning it frees the slot to start another.
+- **Rewards:** Storyline-exclusive **cosmetics** (skins, decals, home backgrounds), **upgrades** (e.g. blueprints, small permanent bonuses), and on **completion** the Explorer **returns in a unique ship** — a hull or unique skin **only** obtainable from that storyline (HLDD §6.2; docs/11_explorer_storylines.md).
+- **Design:** No PvP, no shared OGate instances; Explorer runs in a separate narrative layer. Full specification: **docs/11_explorer_storylines.md**.
+
 ---
 
 ## 2. High-End Economy (Unbuyable Currencies)

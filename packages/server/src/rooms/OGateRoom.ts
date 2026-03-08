@@ -6,21 +6,16 @@ import {
   PlayerInstanceState,
   InstanceState,
   NodeType,
-  ENTROPY_ENTRY_DENIAL_FLOOR,
+  EntropyAction,
   CAPACITOR_1MW_PLAYER_CAP,
   CAPACITOR_1GW_PLAYER_CAP,
-  COMBAT_ENTROPY_COST,
-  EXIT_SPOOL_LIGHT_MS,
-  EXIT_SPOOL_HEAVY_MS,
   SCAN_DURATION_MS,
-  LOOT_ENTROPY_COST,
   INSTANCE_MAP_RADIUS,
 } from "@ogate/shared";
 import type {
   WarpToNodePayload,
   AttackPayload,
   LootNodePayload,
-  ActivateOGatePayload,
 } from "@ogate/shared";
 import { OGateRoomState } from "../schemas/OGateRoomState.js";
 import { PlayerSchema } from "../schemas/PlayerSchema.js";
@@ -29,9 +24,9 @@ import { Vec2Schema } from "../schemas/Vec2Schema.js";
 import { InstanceNodeSchema } from "../schemas/InstanceNodeSchema.js";
 import { generateInstanceNodes, randomEdgePosition } from "../systems/instanceGenerator.js";
 import { tickEntropy, deductEntropy, canEnterInstance } from "../systems/entropySystem.js";
-import { calculateWarpTime, getWarpEntropyCost, getAlertLeadTimeMs } from "../systems/warpSystem.js";
-import { resolveCombat, CombatStance } from "../systems/combatSystem.js";
-import { performScan, resetPingCounts } from "../systems/scanSystem.js";
+import { calculateWarpTime, calculateExitSpoolTime, getAlertLeadTimeMs, getAlertDispatchDelay } from "../systems/warpSystem.js";
+import { resolveCombat } from "../systems/combatSystem.js";
+import { performScan, resetPingCounts, purgeTarget } from "../systems/scanSystem.js";
 import { processEmergencyEscape } from "../systems/transponderSystem.js";
 
 const TICK_RATE_MS = 1000;
@@ -123,14 +118,13 @@ export class OGateRoom extends Room<OGateRoomState> {
       player.totalMass += ship.mass;
     }
 
-    const entryCost = player.totalMass * 0.1;
-    if (!canEnterInstance(state, entryCost)) {
+    if (!canEnterInstance(state, player.totalMass)) {
       client.send(ServerMessage.Error, { message: "Fleet mass would breach the 25% Entropy floor." });
       client.leave();
       return;
     }
 
-    deductEntropy(state, entryCost);
+    deductEntropy(state, EntropyAction.FleetEntry, player.totalMass);
     state.players.set(client.sessionId, player);
 
     this.broadcast(ServerMessage.PlayerJoined, {
@@ -149,6 +143,7 @@ export class OGateRoom extends Room<OGateRoomState> {
     const player = this.state.players.get(client.sessionId);
     if (player) {
       resetPingCounts(player.id);
+      purgeTarget(player.id);
       this.broadcast(ServerMessage.PlayerLeft, { playerId: player.id });
       this.state.players.delete(client.sessionId);
     }
@@ -225,9 +220,8 @@ export class OGateRoom extends Room<OGateRoomState> {
       return;
     }
 
-    const warpTime = calculateWarpTime(player.position, targetNode.position);
-    const entropyCost = getWarpEntropyCost();
-    deductEntropy(this.state, entropyCost);
+    const warpTime = calculateWarpTime(player.position, targetNode.position, player.totalMass);
+    deductEntropy(this.state, EntropyAction.Warp);
 
     player.state = PlayerInstanceState.Warping;
 
@@ -335,7 +329,7 @@ export class OGateRoom extends Room<OGateRoomState> {
     attacker.state = PlayerInstanceState.InCombat;
     defender.state = PlayerInstanceState.InCombat;
 
-    deductEntropy(this.state, COMBAT_ENTROPY_COST);
+    deductEntropy(this.state, EntropyAction.Combat);
 
     const outcome = resolveCombat(attacker, defender);
 
@@ -368,7 +362,7 @@ export class OGateRoom extends Room<OGateRoomState> {
       return;
     }
 
-    const spoolTime = player.totalMass > 50 ? EXIT_SPOOL_HEAVY_MS : EXIT_SPOOL_LIGHT_MS;
+    const spoolTime = calculateExitSpoolTime(player.totalMass);
     player.state = PlayerInstanceState.SpoolingExit;
 
     this.broadcast(ServerMessage.ExitSpoolStarted, {
@@ -431,7 +425,7 @@ export class OGateRoom extends Room<OGateRoomState> {
     }
 
     if (looted) {
-      deductEntropy(this.state, LOOT_ENTROPY_COST);
+      deductEntropy(this.state, EntropyAction.Loot);
     } else {
       client.send(ServerMessage.Error, { message: "Nothing to loot here." });
     }
@@ -472,13 +466,13 @@ export class OGateRoom extends Room<OGateRoomState> {
     const warper = this.state.players.get(warperSessionId);
     const warperMass = warper?.totalMass ?? 10;
     const alertLeadMs = getAlertLeadTimeMs(warperMass);
+    const alertDelay = getAlertDispatchDelay(totalWarpMs, alertLeadMs);
 
     this.state.players.forEach((p, sid) => {
       if (sid === warperSessionId) return;
       if (p.currentNodeId === targetNodeId && p.state !== PlayerInstanceState.Exited) {
         const clientObj = this.clients.find(c => c.sessionId === sid);
         if (clientObj) {
-          const alertDelay = Math.max(0, totalWarpMs - alertLeadMs);
           setTimeout(() => {
             clientObj.send(ServerMessage.ProximityAlert, {
               incomingPlayerId: warper?.id ?? "unknown",

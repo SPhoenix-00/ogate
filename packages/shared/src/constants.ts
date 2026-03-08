@@ -28,18 +28,30 @@ export const CAPACITOR_1GW_MASS_LIMIT = 1000;
 export const WARP_MIN_MS = 30_000;
 /** Maximum warp transit time in milliseconds */
 export const WARP_MAX_MS = 300_000;
+/** ln-based scaling factor for fleet mass → warp duration penalty. */
+export const WARP_MASS_SPEED_FACTOR = 0.12;
+/** Reference mass for the speed curve baseline (probe = no penalty). */
+export const WARP_MASS_REFERENCE = 5;
+/** Warp Overclocker speed multiplier (0.2 = 80% time reduction). */
+export const WARP_OVERCLOCKER_FACTOR = 0.2;
 
 // ── Exfiltration ─────────────────────────────────────────
 /** Base spool-up time for a light fleet (ms) */
 export const EXIT_SPOOL_LIGHT_MS = 3_000;
 /** Base spool-up time for a heavy fleet (ms) */
 export const EXIT_SPOOL_HEAVY_MS = 10_000;
+/** Fleet mass at which spool-up saturates to EXIT_SPOOL_HEAVY_MS. */
+export const EXIT_SPOOL_MASS_CEILING = 150;
 
 // ── Scanning ─────────────────────────────────────────────
 /** Duration of a scanner pulse in milliseconds */
 export const SCAN_DURATION_MS = 5_000;
 /** Entropy cost of a scan action (percentage points) */
 export const SCAN_ENTROPY_COST = 0;
+/** Max position jitter radius (world units) for an unfocused scan lock. */
+export const SCAN_FUZZ_RADIUS = 200;
+/** Threat-level firepower thresholds (ascending from level 1→5). */
+export const SCAN_THREAT_THRESHOLDS = [0, 15, 30, 50, 100];
 
 // ── Combat ───────────────────────────────────────────────
 /** Entropy cost of a combat engagement (percentage points) */
@@ -52,6 +64,25 @@ export const PROXIMITY_ALERT_BASE_MS = 20_000;
 // ── Movement entropy costs ───────────────────────────────
 export const WARP_ENTROPY_COST = 1;
 export const LOOT_ENTROPY_COST = 0.5;
+export const EXTRACT_ENTROPY_COST = 0.3;
+
+// ── Fleet entry ─────────────────────────────────────────
+/** Entropy cost per unit of fleet mass on instance entry. */
+export const FLEET_ENTRY_ENTROPY_PER_MASS = 0.1;
+
+// ── Skill effects ───────────────────────────────────────
+/** Ore production bonus per Mining Proficiency level. */
+export const MINING_SKILL_BONUS_PER_LEVEL = 0.1;
+/** Biomass production bonus per Harvesting Skill level. */
+export const HARVESTING_SKILL_BONUS_PER_LEVEL = 0.1;
+/** Base number of ships allowed in a sortie. */
+export const BASE_SORTIE_SIZE = 3;
+/** Additional ships per Fleet Command level. */
+export const SORTIE_SIZE_PER_FLEET_COMMAND = 1;
+
+// ── Ship repair ─────────────────────────────────────────
+/** Fraction of build cost charged per unit of HP restored. */
+export const REPAIR_COST_RATIO = 0.3;
 
 // ── Starting resources (stub) ────────────────────────────
 export const STARTING_ORE = 500;
