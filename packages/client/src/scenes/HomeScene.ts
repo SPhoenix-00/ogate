@@ -365,11 +365,27 @@ export class HomeScene extends Phaser.Scene {
           this.setStatus(`Skill completed: ${sc.skillId}`);
           break;
         }
-        case HomeResponse.ShipBuilt: {
-          const sb = data as { shipClass: string };
-          this.setStatus(`Ship built: ${sb.shipClass}`);
+        case HomeResponse.ShipBuildStarted: {
+          const sbs = data as { shipClass: string; buildTimeMs: number };
+          this.setStatus(`Building ${sbs.shipClass} (${(sbs.buildTimeMs / 1000).toFixed(0)}s)...`);
           break;
         }
+        case HomeResponse.ShipBuildComplete: {
+          const sbc = data as { shipClass: string };
+          this.setStatus(`Ship complete: ${sbc.shipClass}`);
+          break;
+        }
+        case HomeResponse.ShipBuildCancelled:
+          this.setStatus("Ship build cancelled.");
+          break;
+        case HomeResponse.ShipRepaired: {
+          const sr = data as { shipId: string };
+          this.setStatus(`Ship ${sr.shipId.substring(0, 6)} repaired.`);
+          break;
+        }
+        case HomeResponse.SkillQueueCancelled:
+          this.setStatus("Last skill queue item cancelled.");
+          break;
         case HomeResponse.HomeError: {
           const he = data as { message: string };
           this.setStatus(`Error: ${he.message}`);

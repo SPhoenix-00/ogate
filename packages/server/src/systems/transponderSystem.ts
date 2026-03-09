@@ -1,6 +1,5 @@
 import { rollEscapeDamage, TransponderType } from "@ogate/shared";
 import type { PlayerSchema } from "../schemas/PlayerSchema.js";
-import type { ShipSchema } from "../schemas/ShipSchema.js";
 
 export interface EscapeResult {
   playerId: string;
@@ -45,6 +44,20 @@ export function processEmergencyEscape(player: PlayerSchema): EscapeResult {
       shipClass: ship.shipClass,
       structuralDamagePercent: dmgPercent * 100,
       isWreck: ship.hullHp <= 0,
+    });
+  }
+
+  for (const contingent of player.contingents) {
+    const casualtyRoll = rollEscapeDamage();
+    const losses = Math.round(contingent.strength * casualtyRoll);
+    contingent.strength = Math.max(0, contingent.strength - losses);
+    const wiped = contingent.strength <= 0;
+    if (wiped) contingent.injured = true;
+
+    result.contingentCasualties.push({
+      contingentId: contingent.id,
+      casualtyPercent: casualtyRoll * 100,
+      wiped,
     });
   }
 

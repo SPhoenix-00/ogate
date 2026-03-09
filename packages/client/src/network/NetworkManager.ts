@@ -2,10 +2,13 @@ import { Client, Room } from "colyseus.js";
 import {
   ClientMessage,
   ServerMessage,
-  type ActivateOGatePayload,
   type WarpToNodePayload,
   type AttackPayload,
   type LootNodePayload,
+  type ExtractResourcesPayload,
+  type SetCombatStancePayload,
+  type CombatStance,
+  type ResourceType,
   CapacitorTier,
 } from "@ogate/shared";
 
@@ -83,6 +86,18 @@ export class NetworkManager {
 
   sendLoot(nodeId: string): void {
     this.room?.send(ClientMessage.LootNode, { nodeId } satisfies LootNodePayload);
+  }
+
+  sendEmergencyWarp(): void {
+    this.room?.send(ClientMessage.EmergencyWarp);
+  }
+
+  sendExtractResources(nodeId: string, resourceType: ResourceType): void {
+    this.room?.send(ClientMessage.ExtractResources, { nodeId, resourceType } satisfies ExtractResourcesPayload);
+  }
+
+  sendSetCombatStance(stance: CombatStance): void {
+    this.room?.send(ClientMessage.SetCombatStance, { stance } satisfies SetCombatStancePayload);
   }
 
   getRoom(): Room | null {

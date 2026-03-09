@@ -43,12 +43,12 @@ ogate/
 │   │       │   ├── mongo.ts     # MongoDB connection + Player model
 │   │       │   └── redis.ts     # Redis connection + instance state cache
 │   │       ├── rooms/
-│   │       │   ├── OGateRoom.ts # Instance room: warp, scan, combat, entropy, exit
+│   │       │   ├── OGateRoom.ts # Instance room: warp, scan, combat, extract, loot, exit, emergency warp, stances
 │   │       │   └── HomeRoom.ts  # Home room: economy, skills, social, research, shop
 │   │       ├── schemas/
 │   │       │   ├── OGateRoomState.ts   # Colyseus state for an OGate instance
-│   │       │   ├── PlayerSchema.ts     # Player state inside an instance
-│   │       │   ├── ShipSchema.ts       # Individual ship state
+│   │       │   ├── PlayerSchema.ts     # Player state inside an instance (ships, contingents, cargo)
+│   │       │   ├── ShipSchema.ts       # Individual ship state (hull, firepower, evasion, point defense)
 │   │       │   ├── InstanceNodeSchema.ts # Map node (planet, belt, gas cloud, etc.)
 │   │       │   ├── Vec2Schema.ts       # 2D position
 │   │       │   ├── HomeStateSchema.ts  # Player home system state (resources, buildings, fleet)
@@ -71,11 +71,11 @@ ogate/
 │       └── src/
 │           ├── main.ts          # Phaser game bootstrap (480x800 portrait, FIT scaling)
 │           ├── network/
-│           │   ├── NetworkManager.ts     # WebSocket client for OGate instance rooms
-│           │   └── HomeNetworkManager.ts # WebSocket client for Home System rooms
+│           │   ├── NetworkManager.ts     # Instance client: warp, scan, attack, loot, extract, exit, emergency warp, stances
+│           │   └── HomeNetworkManager.ts # Home client: collect, upgrade, queue skill, build/repair ships
 │           └── scenes/
-│               ├── HomeScene.ts      # Portrait UI: resources, buildings, skills, fleet, OGate button
-│               └── InstanceScene.ts  # Portrait tactical dashboard: map, entropy gauge, actions
+│               ├── HomeScene.ts      # Portrait UI: resources, buildings, skills, fleet, OGate activation
+│               └── InstanceScene.ts  # Tactical dashboard: map, entropy, scan/extract/loot/exit/emergency warp
 │
 ├── package.json                 # Root workspace config
 ├── tsconfig.base.json           # Shared TypeScript settings
@@ -167,7 +167,7 @@ npm run build        # Builds shared → server → client
 
 ### Authoritative Server
 
-The Colyseus server owns all game state. Clients send input messages (`warp_to_node`, `initiate_scan`, `attack`, etc.) and receive state patches. No game logic runs on the client.
+The Colyseus server owns all game state. Clients send input messages (`warp_to_node`, `initiate_scan`, `attack`, `extract_resources`, `emergency_warp`, `set_combat_stance`, etc.) and receive state patches via `@colyseus/schema` delta sync. No game logic runs on the client.
 
 ### Dual-Session Economy
 

@@ -100,8 +100,7 @@ function applyVolley(
     if (remainingDamage <= 0) break;
     if (target.hullHp <= 0) continue;
 
-    const evasionChance = parseFloat((target as unknown as Record<string, string>).evasion ?? "0") || 0;
-    if (Math.random() < evasionChance) continue;
+    if (Math.random() < target.evasion) continue;
 
     const actualDmg = Math.min(target.hullHp, remainingDamage);
     target.hullHp -= actualDmg;

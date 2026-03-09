@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { networkManager } from "../network/NetworkManager.js";
-import { ServerMessage, PlayerInstanceState } from "@ogate/shared";
+import { ServerMessage, PlayerInstanceState, ResourceType } from "@ogate/shared";
 
 interface NodeInfo {
   id: string;
@@ -241,27 +241,42 @@ export class InstanceScene extends Phaser.Scene {
 
   private createActionButtons(): void {
     const { width, height } = this.scale;
-    const btnY = height - 50;
-    const btnW = 110;
-    const btnH = 36;
-    const gap = 12;
+    const btnH = 32;
+    const gap = 8;
 
-    const buttons = [
+    const primaryY = height - 46;
+    const primaryBtns = [
       { label: "SCAN", color: 0x0d47a1, action: () => this.onScan() },
+      { label: "EXTRACT", color: 0x4a148c, action: () => this.onExtract() },
       { label: "LOOT", color: 0x4e342e, action: () => this.onLoot() },
-      { label: "EXIT", color: 0x1b5e20, action: () => this.onExit() },
     ];
+    const pBtnW = Math.floor((width - 40 - gap * (primaryBtns.length - 1)) / primaryBtns.length);
+    this.layoutButtonRow(primaryBtns, primaryY, pBtnW, btnH, gap);
 
+    const secondaryY = primaryY - btnH - gap;
+    const secondaryBtns = [
+      { label: "EXIT", color: 0x1b5e20, action: () => this.onExit() },
+      { label: "EMERGENCY WARP", color: 0xb71c1c, action: () => this.onEmergencyWarp() },
+    ];
+    const sBtnW = Math.floor((width - 40 - gap * (secondaryBtns.length - 1)) / secondaryBtns.length);
+    this.layoutButtonRow(secondaryBtns, secondaryY, sBtnW, btnH, gap);
+  }
+
+  private layoutButtonRow(
+    buttons: Array<{ label: string; color: number; action: () => void }>,
+    y: number, btnW: number, btnH: number, gap: number,
+  ): void {
+    const { width } = this.scale;
     const totalW = buttons.length * btnW + (buttons.length - 1) * gap;
     const startX = width / 2 - totalW / 2 + btnW / 2;
 
     buttons.forEach((b, i) => {
       const x = startX + i * (btnW + gap);
-      const rect = this.add.rectangle(x, btnY, btnW, btnH, b.color)
+      this.add.rectangle(x, y, btnW, btnH, b.color)
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", b.action);
-      this.add.text(x, btnY, b.label, {
-        fontSize: "13px",
+      this.add.text(x, y, b.label, {
+        fontSize: "11px",
         color: "#e0e0e0",
         fontFamily: "monospace",
       }).setOrigin(0.5);
@@ -272,6 +287,22 @@ export class InstanceScene extends Phaser.Scene {
     if (this.playerState !== PlayerInstanceState.Idle) return;
     networkManager.sendScan();
     this.setStatus("Scanning... (5s)");
+  }
+
+  private onExtract(): void {
+    if (this.playerState !== PlayerInstanceState.Idle) return;
+    const node = this.nodes.find(n => n.id === this.currentNodeId);
+    if (!node) return;
+
+    if (node.ore > 0) {
+      networkManager.sendExtractResources(this.currentNodeId, ResourceType.Ore);
+      this.setStatus("Extracting ore...");
+    } else if (node.biomass > 0) {
+      networkManager.sendExtractResources(this.currentNodeId, ResourceType.Biomass);
+      this.setStatus("Extracting biomass...");
+    } else {
+      this.setStatus("Nothing to extract here.");
+    }
   }
 
   private onLoot(): void {
@@ -287,6 +318,12 @@ export class InstanceScene extends Phaser.Scene {
     }
     networkManager.sendExit();
     this.setStatus("Spooling exit...");
+  }
+
+  private onEmergencyWarp(): void {
+    if (this.playerState === PlayerInstanceState.Exited) return;
+    networkManager.sendEmergencyWarp();
+    this.setStatus("EMERGENCY WARP ACTIVATED!");
   }
 
   // ── Info Panel ────────────────────────────────────────
@@ -405,6 +442,30 @@ export class InstanceScene extends Phaser.Scene {
           if (lc.resourceType === "BIOMASS") this.cargoBiomass += lc.amount;
           this.updateCargoDisplay();
           this.setStatus(`Looted ${lc.amount} ${lc.resourceType}`);
+          break;
+        }
+        case ServerMessage.EmergencyWarpResult: {
+          const ew = data as { result: { cargoLost: { ore: number; biomass: number }; shipsEscaped: Array<{ isWreck: boolean }> } };
+          const wrecks = ew.result.shipsEscaped.filter(s => s.isWreck).length;
+          this.setAlert(`Emergency warp! Lost cargo. ${wrecks} ship(s) wrecked.`);
+          this.cargoOre = 0;
+          this.cargoBiomass = 0;
+          this.updateCargoDisplay();
+          this.time.delayedCall(2000, () => {
+            networkManager.disconnect();
+            this.scene.start("HomeScene");
+          });
+          break;
+        }
+        case ServerMessage.NodeDepleted: {
+          const nd = data as { nodeId: string };
+          const depletedNode = this.nodes.find(n => n.id === nd.nodeId);
+          if (depletedNode) {
+            depletedNode.ore = 0;
+            depletedNode.biomass = 0;
+          }
+          this.setStatus("Node depleted.");
+          this.updateNodeList();
           break;
         }
         case ServerMessage.InstanceCollapse: {

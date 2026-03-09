@@ -7,4 +7,6 @@ export class ShipSchema extends Schema {
   @type("float32") maxHullHp: number = 0;
   @type("float32") firepower: number = 0;
   @type("float32") mass: number = 0;
+  @type("float32") evasion: number = 0;
+  @type("float32") pointDefense: number = 0;
 }

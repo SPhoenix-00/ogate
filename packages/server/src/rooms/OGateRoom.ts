@@ -7,21 +7,27 @@ import {
   InstanceState,
   NodeType,
   EntropyAction,
+  CombatStance,
   CAPACITOR_1MW_PLAYER_CAP,
   CAPACITOR_1GW_PLAYER_CAP,
   SCAN_DURATION_MS,
   INSTANCE_MAP_RADIUS,
+  SHIP_BLUEPRINTS,
+  type ShipClass,
 } from "@ogate/shared";
 import type {
   WarpToNodePayload,
   AttackPayload,
   LootNodePayload,
+  SetCombatStancePayload,
+  ExtractResourcesPayload,
 } from "@ogate/shared";
 import { OGateRoomState } from "../schemas/OGateRoomState.js";
 import { PlayerSchema } from "../schemas/PlayerSchema.js";
 import { ShipSchema } from "../schemas/ShipSchema.js";
 import { Vec2Schema } from "../schemas/Vec2Schema.js";
 import { InstanceNodeSchema } from "../schemas/InstanceNodeSchema.js";
+import { ContingentSchema } from "../schemas/ContingentSchema.js";
 import { generateInstanceNodes, randomEdgePosition } from "../systems/instanceGenerator.js";
 import { tickEntropy, deductEntropy, canEnterInstance } from "../systems/entropySystem.js";
 import { calculateWarpTime, calculateExitSpoolTime, getAlertLeadTimeMs, getAlertDispatchDelay } from "../systems/warpSystem.js";
@@ -36,6 +42,7 @@ export class OGateRoom extends Room<OGateRoomState> {
   private warpTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private scanTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private exitTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private playerStances = new Map<string, CombatStance>();
 
   onCreate(options: { capacitorTier?: string }): void {
     const state = new OGateRoomState();
@@ -62,7 +69,26 @@ export class OGateRoom extends Room<OGateRoomState> {
     console.log(`[OGateRoom] Created instance ${state.instanceId} (${state.capacitorTier}) with ${nodes.length} nodes`);
   }
 
-  onJoin(client: Client, options: { playerId?: string; playerName?: string; ships?: Array<{ shipClass: string; hullHp: number; maxHullHp: number; firepower: number; mass: number }> }): void {
+  onJoin(client: Client, options: {
+    playerId?: string;
+    playerName?: string;
+    ships?: Array<{
+      shipClass: string;
+      hullHp: number;
+      maxHullHp: number;
+      firepower: number;
+      mass: number;
+      evasion?: number;
+      pointDefense?: number;
+    }>;
+    contingents?: Array<{
+      contingentType: string;
+      name: string;
+      strength: number;
+      maxStrength: number;
+      xp?: number;
+    }>;
+  }): void {
     const state = this.state;
 
     if (state.instanceState !== InstanceState.Active) {
@@ -93,6 +119,7 @@ export class OGateRoom extends Room<OGateRoomState> {
 
     if (options.ships && options.ships.length > 0) {
       for (const shipData of options.ships) {
+        const bp = SHIP_BLUEPRINTS[shipData.shipClass as ShipClass];
         const ship = new ShipSchema();
         ship.id = uuid();
         ship.shipClass = shipData.shipClass;
@@ -100,17 +127,35 @@ export class OGateRoom extends Room<OGateRoomState> {
         ship.maxHullHp = shipData.maxHullHp;
         ship.firepower = shipData.firepower;
         ship.mass = shipData.mass;
+        ship.evasion = shipData.evasion ?? bp?.evasion ?? 0;
+        ship.pointDefense = shipData.pointDefense ?? bp?.pointDefense ?? 0;
         player.ships.push(ship);
       }
     } else {
+      const bp = SHIP_BLUEPRINTS["PROBE" as ShipClass];
       const probe = new ShipSchema();
       probe.id = uuid();
       probe.shipClass = "PROBE";
-      probe.hullHp = 50;
-      probe.maxHullHp = 50;
-      probe.firepower = 10;
-      probe.mass = 5;
+      probe.hullHp = bp.hullHp;
+      probe.maxHullHp = bp.hullHp;
+      probe.firepower = bp.firepower;
+      probe.mass = bp.mass;
+      probe.evasion = bp.evasion;
+      probe.pointDefense = bp.pointDefense;
       player.ships.push(probe);
+    }
+
+    if (options.contingents) {
+      for (const cData of options.contingents) {
+        const contingent = new ContingentSchema();
+        contingent.id = uuid();
+        contingent.contingentType = cData.contingentType;
+        contingent.name = cData.name;
+        contingent.strength = cData.strength;
+        contingent.maxStrength = cData.maxStrength;
+        contingent.xp = cData.xp ?? 0;
+        player.contingents.push(contingent);
+      }
     }
 
     player.totalMass = 0;
@@ -140,6 +185,7 @@ export class OGateRoom extends Room<OGateRoomState> {
 
   onLeave(client: Client): void {
     this.clearPlayerTimers(client.sessionId);
+    this.playerStances.delete(client.sessionId);
     const player = this.state.players.get(client.sessionId);
     if (player) {
       resetPingCounts(player.id);
@@ -179,6 +225,18 @@ export class OGateRoom extends Room<OGateRoomState> {
 
     this.onMessage(ClientMessage.LootNode, (client, payload: LootNodePayload) => {
       this.handleLoot(client, payload);
+    });
+
+    this.onMessage(ClientMessage.EmergencyWarp, (client) => {
+      this.handleEmergencyWarp(client);
+    });
+
+    this.onMessage(ClientMessage.ExtractResources, (client, payload: ExtractResourcesPayload) => {
+      this.handleExtractResources(client, payload);
+    });
+
+    this.onMessage(ClientMessage.SetCombatStance, (client, payload: SetCombatStancePayload) => {
+      this.playerStances.set(client.sessionId, payload.stance);
     });
   }
 
@@ -331,7 +389,13 @@ export class OGateRoom extends Room<OGateRoomState> {
 
     deductEntropy(this.state, EntropyAction.Combat);
 
-    const outcome = resolveCombat(attacker, defender);
+    const attackerStance = payload.stance
+      ?? this.playerStances.get(client.sessionId)
+      ?? CombatStance.Balanced;
+    const defenderStance = this.playerStances.get(defenderSessionId)
+      ?? CombatStance.Balanced;
+
+    const outcome = resolveCombat(attacker, defender, attackerStance, defenderStance);
 
     attacker.state = PlayerInstanceState.Idle;
     defender.state = PlayerInstanceState.Idle;
@@ -429,6 +493,81 @@ export class OGateRoom extends Room<OGateRoomState> {
     } else {
       client.send(ServerMessage.Error, { message: "Nothing to loot here." });
     }
+  }
+
+  // ── Emergency Warp ───────────────────────────────────
+
+  private handleEmergencyWarp(client: Client): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    if (player.state === PlayerInstanceState.Exited) {
+      client.send(ServerMessage.Error, { message: "Already exited." });
+      return;
+    }
+
+    this.clearPlayerTimers(client.sessionId);
+
+    player.state = PlayerInstanceState.EmergencyWarping;
+    const result = processEmergencyEscape(player);
+    player.state = PlayerInstanceState.Exited;
+
+    resetPingCounts(player.id);
+    purgeTarget(player.id);
+
+    client.send(ServerMessage.EmergencyWarpResult, { result });
+    this.broadcast(ServerMessage.PlayerLeft, { playerId: player.id }, { except: client });
+  }
+
+  // ── Extract Resources ───────────────────────────────
+
+  private handleExtractResources(client: Client, payload: ExtractResourcesPayload): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+
+    if (player.state !== PlayerInstanceState.Idle) {
+      client.send(ServerMessage.Error, { message: "Cannot extract while busy." });
+      return;
+    }
+
+    const node = this.state.nodes.find(n => n.id === payload.nodeId);
+    if (!node) {
+      client.send(ServerMessage.Error, { message: "Node not found." });
+      return;
+    }
+
+    if (player.currentNodeId !== node.id) {
+      client.send(ServerMessage.Error, { message: "Not at this node." });
+      return;
+    }
+
+    player.state = PlayerInstanceState.Extracting;
+
+    let extracted = false;
+    if (payload.resourceType === "ORE" && node.oreAmount > 0) {
+      const amount = Math.min(node.oreAmount, 25);
+      node.oreAmount -= amount;
+      player.cargoOre += amount;
+      extracted = true;
+      client.send(ServerMessage.LootCollected, { nodeId: node.id, resourceType: "ORE", amount });
+    } else if (payload.resourceType === "BIOMASS" && node.biomassAmount > 0) {
+      const amount = Math.min(node.biomassAmount, 15);
+      node.biomassAmount -= amount;
+      player.cargoBiomass += amount;
+      extracted = true;
+      client.send(ServerMessage.LootCollected, { nodeId: node.id, resourceType: "BIOMASS", amount });
+    }
+
+    if (extracted) {
+      deductEntropy(this.state, EntropyAction.Extract);
+      if (node.oreAmount <= 0 && node.biomassAmount <= 0) {
+        this.broadcast(ServerMessage.NodeDepleted, { nodeId: node.id });
+      }
+    } else {
+      client.send(ServerMessage.Error, { message: "No resources of that type available." });
+    }
+
+    player.state = PlayerInstanceState.Idle;
   }
 
   // ── Helpers ──────────────────────────────────────────
